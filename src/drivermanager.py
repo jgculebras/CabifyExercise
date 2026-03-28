@@ -1,25 +1,31 @@
+"""Driver location management with optional JSON-backed persistence."""
+
 import json
 from pathlib import Path
 
 MAX_DISTANCE = float('inf')
-DRIVERS_JSON_FILE = Path(__file__).resolve().parent.parent / "drivers.json"
+DEFAULT_STORAGE_PATH = Path(__file__).resolve().parent.parent / "drivers.json"
 
 Location = tuple[float, float]
 
 class DriverManager:
+    """Manage tracked drivers in memory and persist them to a JSON file."""
+
     def __init__(self, storage_path: str | Path | None = None):
-        self.storage_path = Path(storage_path) if storage_path is not None else DRIVERS_JSON_FILE
+        self.storage_path = Path(storage_path) if storage_path is not None else DEFAULT_STORAGE_PATH
         self.drivers: dict[str, Location] = self._load_drivers()
 
     def _load_drivers(self) -> dict[str, Location]:
+        """Load tracked drivers from storage, or start empty on first run."""
+
         if not self.storage_path.exists():
-            raise ValueError(f"Driver storage file {self.storage_path} does not exist")
+            return {}
 
         try:
             with self.storage_path.open("r", encoding="utf-8") as storage_file:
                 data = json.load(storage_file)
-        except (json.JSONDecodeError, ValueError) as e:
-            raise ValueError(f"Invalid driver storage file {self.storage_path}")
+        except (json.JSONDecodeError, ValueError) as error:
+            raise ValueError(f"Invalid driver storage file {self.storage_path}") from error
 
         if not isinstance(data, dict):
             raise ValueError(f"Invalid driver storage file {self.storage_path}: expected a JSON object")
@@ -32,18 +38,21 @@ class DriverManager:
             try:
                 latitude = float(location[0])
                 longitude = float(location[1])
-            except (TypeError, ValueError) as e:
-                raise ValueError(f"Invalid coordinates for driver {name} in {self.storage_path}")
+            except (TypeError, ValueError) as error:
+                raise ValueError(f"Invalid coordinates for driver {name} in {self.storage_path}") from error
 
             drivers[name] = (latitude, longitude)
 
         return drivers
 
     def _save_drivers(self) -> None:
+        """Persist the current in-memory driver state to the storage file."""
+
         serialized = {
             name: [location[0], location[1]]
             for name, location in self.drivers.items()
         }
+        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         with self.storage_path.open("w", encoding="utf-8") as storage_file:
             json.dump(serialized, storage_file, indent=2)
 
