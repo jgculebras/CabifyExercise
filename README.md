@@ -2,6 +2,8 @@
 
 This project implements a small Python module to manage driver locations for the Cabify Rookie Excellence Program technical assessment.
 
+You can find the full project at: https://github.com/jgculebras/CabifyExercise
+
 ### What it does
 
 - Updates a driver's location, creating the driver if it does not already exist.
